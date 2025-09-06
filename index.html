@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聊天记录结构化生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #e0e0ff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(15, 15, 35, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 
+                        0 0 0 1px rgba(100, 100, 255, 0.1);
+            overflow: hidden;
+            border: 1px solid rgba(100, 100, 255, 0.15);
+        }
+
+        .header {
+            background: linear-gradient(45deg, #4a00e0, #8e2de2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            position: relative;
+        }
+
+        .settings-panel {
+            padding: 20px;
+            background: rgba(20, 20, 40, 0.6);
+            border-bottom: 1px solid rgba(100, 100, 255, 0.1);
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            color: #a0a0ff;
+            min-width: 80px;
+        }
+
+        .input-group input {
+            padding: 10px 15px;
+            background: rgba(10, 10, 30, 0.7);
+            border: 1px solid rgba(100, 100, 255, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            color: #e0e0ff;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #8e2de2;
+            box-shadow: 0 0 0 2px rgba(142, 45, 226, 0.3);
+        }
+
+        .input-group input::placeholder {
+            color: #7070a0;
+        }
+
+        .main-content {
+            display: flex;
+            padding: 30px;
+            gap: 30px;
+            min-height: 500px;
+        }
+
+        .chat-input-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .chat-box {
+            background: rgba(20, 20, 40, 0.6);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(100, 100, 255, 0.1);
+        }
+
+        .chat-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            border-color: rgba(142, 45, 226, 0.3);
+        }
+
+        .chat-box h3 {
+            margin-bottom: 15px;
+            color: #8e2de2;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-box h3::before {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #8e2de2;
+            box-shadow: 0 0 10px #8e2de2;
+        }
+
+        .chat-box textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            background: rgba(10, 10, 30, 0.7);
+            border: 1px solid rgba(100, 100, 255, 0.2);
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            color: #e0e0ff;
+        }
+
+        .chat-box textarea:focus {
+            outline: none;
+            border-color: #8e2de2;
+            box-shadow: 0 0 0 2px rgba(142, 45, 226, 0.3);
+        }
+
+        .chat-box textarea::placeholder {
+            color: #7070a0;
+        }
+
+        .submit-btn {
+            background: linear-gradient(45deg, #4a00e0, #8e2de2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(74, 0, 224, 0.3);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(74, 0, 224, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(1px);
+        }
+
+        .chat-display {
+            flex: 1;
+            background: rgba(20, 20, 40, 0.6);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(100, 100, 255, 0.1);
+        }
+
+        .chat-display h3 {
+            margin-bottom: 15px;
+            color: #8e2de2;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-display h3::before {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00c9ff;
+            box-shadow: 0 0 10px #00c9ff;
+        }
+
+        .chat-content {
+            flex: 1;
+            background: rgba(15, 15, 35, 0.7);
+            border: 1px solid rgba(100, 100, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e0e0ff;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .chat-message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            animation: fadeIn 0.3s ease;
+            background: rgba(30, 30, 60, 0.5);
+            border-left: 3px solid #8e2de2;
+        }
+
+        .chat-message:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-role {
+            font-weight: bold;
+            color: #00c9ff;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .message-role::before {
+            content: '▸';
+            color: #8e2de2;
+            font-size: 1.2em;
+        }
+
+        .message-content {
+            color: #e0e0ff;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding-left: 20px;
+        }
+
+        .export-section {
+            padding: 20px;
+            background: rgba(20, 20, 40, 0.6);
+            border-top: 1px solid rgba(100, 100, 255, 0.1);
+            text-align: center;
+        }
+
+        .export-btn {
+            background: linear-gradient(45deg, #00c9ff, #92fe9d);
+            color: #0a0a1a;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 201, 255, 0.3);
+        }
+
+        .export-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 201, 255, 0.4);
+        }
+
+        .export-btn:active {
+            transform: translateY(1px);
+        }
+
+        .clear-btn {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3);
+        }
+
+        .clear-btn:hover {
+            box-shadow: 0 6px 20px rgba(255, 65, 108, 0.4);
+        }
+
+        .clear-btn:hover {
+            box-shadow: 0 6px 20px rgba(255, 65, 108, 0.4);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #7070a0;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        .timestamp {
+            font-size: 0.8em;
+            color: #7070a0;
+            margin-left: 10px;
+            font-weight: normal;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stats {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(15, 15, 35, 0.7);
+            border-radius: 8px;
+            font-size: 0.9em;
+            color: #a0a0ff;
+            display: flex;
+            justify-content: space-around;
+            border: 1px solid rgba(100, 100, 255, 0.1);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-weight: bold;
+            color: #00c9ff;
+            font-size: 1.2em;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .settings-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .input-group {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💬 聊天记录结构化生成器</h1>
+            <p>轻松创建和导出格式化的聊天记录</p>
+        </div>
+
+        <div class="settings-panel">
+            <div class="settings-row">
+                <div class="input-group">
+                    <label for="leftRole">左侧角色：</label>
+                    <input type="text" id="leftRole" value="我的女朋友" placeholder="输入左侧角色名称">
+                </div>
+                <div class="input-group">
+                    <label for="rightRole">右侧角色：</label>
+                    <input type="text" id="rightRole" value="我" placeholder="输入右侧角色名称">
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="chat-input-section">
+                <div class="chat-box">
+                    <h3 id="leftRoleDisplay">我的女朋友</h3>
+                    <textarea id="leftInput" placeholder="在这里输入左侧角色的消息..."></textarea>
+                    <button class="submit-btn" onclick="addMessage('left')">发送消息</button>
+                </div>
+
+                <div class="chat-box">
+                    <h3 id="rightRoleDisplay">我</h3>
+                    <textarea id="rightInput" placeholder="在这里输入右侧角色的消息..."></textarea>
+                    <button class="submit-btn" onclick="addMessage('right')">发送消息</button>
+                </div>
+            </div>
+
+            <div class="chat-display">
+                <h3>聊天记录</h3>
+                <div class="chat-content" id="chatDisplay">
+                    <div class="empty-state">
+                        <p>💭 暂无聊天记录</p>
+                        <p>请在左侧或右侧输入框中输入消息开始对话</p>
+                    </div>
+                </div>
+                <div class="stats" id="stats" style="display: none;">
+                    <div class="stat-item">
+                        <span class="stat-number" id="totalMessages">0</span>
+                        <div>总消息数</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="leftCount">0</span>
+                        <div id="leftCountLabel">左侧消息</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="rightCount">0</span>
+                        <div id="rightCountLabel">右侧消息</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="export-section">
+            <button class="export-btn" onclick="exportToTxt()">📄 导出为 TXT</button>
+            <button class="export-btn" onclick="exportToMarkdown()">📝 导出为 Markdown</button>
+            <button class="export-btn clear-btn" onclick="clearChat()">🗑️ 清空记录</button>
+        </div>
+    </div>
+
+    <script>
+        class ChatRecordGenerator {
+            constructor() {
+                this.messages = [];
+                this.leftRole = '我的女朋友';
+                this.rightRole = '我';
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.updateRoleDisplay();
+            }
+
+            bindEvents() {
+                // 角色名称输入事件
+                document.getElementById('leftRole').addEventListener('input', (e) => {
+                    this.leftRole = e.target.value || '左侧角色';
+                    this.updateRoleDisplay();
+                    this.updateChatDisplay();
+                });
+
+                document.getElementById('rightRole').addEventListener('input', (e) => {
+                    this.rightRole = e.target.value || '右侧角色';
+                    this.updateRoleDisplay();
+                    this.updateChatDisplay();
+                });
+
+                // 回车发送消息
+                document.getElementById('leftInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.addMessage('left');
+                    }
+                });
+
+                document.getElementById('rightInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.addMessage('right');
+                    }
+                });
+            }
+
+            updateRoleDisplay() {
+                document.getElementById('leftRoleDisplay').textContent = this.leftRole;
+                document.getElementById('rightRoleDisplay').textContent = this.rightRole;
+                document.getElementById('leftCountLabel').textContent = `${this.leftRole}消息`;
+                document.getElementById('rightCountLabel').textContent = `${this.rightRole}消息`;
+            }
+
+            addMessage(side) {
+                const inputId = side === 'left' ? 'leftInput' : 'rightInput';
+                const input = document.getElementById(inputId);
+                const content = input.value.trim();
+
+                if (!content) {
+                    alert('请输入消息内容！');
+                    return;
+                }
+
+                const role = side === 'left' ? this.leftRole : this.rightRole;
+                const timestamp = new Date().toLocaleString('zh-CN');
+
+                const message = {
+                    role: role,
+                    content: content,
+                    side: side,
+                    timestamp: timestamp
+                };
+
+                this.messages.push(message);
+                input.value = '';
+                this.updateChatDisplay();
+                this.updateStats();
+            }
+
+            updateChatDisplay() {
+                const display = document.getElementById('chatDisplay');
+                
+                if (this.messages.length === 0) {
+                    display.innerHTML = `
+                        <div class="empty-state">
+                            <p>💭 暂无聊天记录</p>
+                            <p>请在左侧或右侧输入框中输入消息开始对话</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                display.innerHTML = this.messages.map(msg => `
+                    <div class="chat-message">
+                        <div class="message-role">
+                            ${msg.role}
+                            <span class="timestamp">${msg.timestamp}</span>
+                        </div>
+                        <div class="message-content">${this.escapeHtml(msg.content)}</div>
+                    </div>
+                `).join('');
+
+                // 滚动到底部
+                display.scrollTop = display.scrollHeight;
+            }
+
+            updateStats() {
+                const stats = document.getElementById('stats');
+                const total = this.messages.length;
+                const leftCount = this.messages.filter(msg => msg.side === 'left').length;
+                const rightCount = this.messages.filter(msg => msg.side === 'right').length;
+
+                stats.style.display = total > 0 ? 'flex' : 'none';
+                document.getElementById('totalMessages').textContent = total;
+                document.getElementById('leftCount').textContent = leftCount;
+                document.getElementById('rightCount').textContent = rightCount;
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            exportToTxt() {
+                if (this.messages.length === 0) {
+                    alert('暂无聊天记录可导出！');
+                    return;
+                }
+
+                const content = this.messages.map(msg => 
+                    `${msg.role}:\n${msg.content}\n`
+                ).join('\n');
+
+                this.downloadFile(content, '聊天记录.txt', 'text/plain');
+            }
+
+            exportToMarkdown() {
+                if (this.messages.length === 0) {
+                    alert('暂无聊天记录可导出！');
+                    return;
+                }
+
+                const title = `# 聊天记录\n\n生成时间：${new Date().toLocaleString('zh-CN')}\n\n---\n\n`;
+                const content = this.messages.map(msg => 
+                    `### ${msg.role}\n${msg.content}\n\n---\n`
+                ).join('\n');
+
+                this.downloadFile(title + content, '聊天记录.md', 'text/markdown');
+            }
+
+            downloadFile(content, filename, type) {
+                const blob = new Blob([content], { type: type + ';charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            clearChat() {
+                if (this.messages.length === 0) {
+                    alert('聊天记录已经是空的了！');
+                    return;
+                }
+
+                if (confirm('确定要清空所有聊天记录吗？此操作不可撤销。')) {
+                    this.messages = [];
+                    this.updateChatDisplay();
+                    this.updateStats();
+                    alert('聊天记录已清空！');
+                }
+            }
+        }
+
+        // 初始化应用
+        const chatApp = new ChatRecordGenerator();
+
+        // 全局函数供HTML调用
+        function addMessage(side) {
+            chatApp.addMessage(side);
+        }
+
+        function exportToTxt() {
+            chatApp.exportToTxt();
+        }
+
+        function exportToMarkdown() {
+            chatApp.exportToMarkdown();
+        }
+
+        function clearChat() {
+            chatApp.clearChat();
+        }
+
+        // 添加一些示例数据（可选）
+        function addSampleData() {
+            const sampleMessages = [
+                { role: chatApp.leftRole, content: "你好啊！", side: 'left' },
+                { role: chatApp.rightRole, content: "我爱你！", side: 'right' },
+                { role: chatApp.leftRole, content: "真的吗？我好开心！😊", side: 'left' }
+            ];
+
+            sampleMessages.forEach(msg => {
+                msg.timestamp = new Date().toLocaleString('zh-CN');
+                chatApp.messages.push(msg);
+            });
+            
+            chatApp.updateChatDisplay();
+            chatApp.updateStats();
+        }
+
+        // 页面加载完成后的欢迎提示
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (chatApp.messages.length === 0) {
+                    console.log('💡 提示：您可以点击以下命令添加示例数据：');
+                    console.log('addSampleData()');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
